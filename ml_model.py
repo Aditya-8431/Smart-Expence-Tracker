@@ -13,8 +13,9 @@ import joblib
 import numpy as np
 import pandas as pd
 
-MODEL_DIR  = MODEL_DIR  = os.path.dirname(__file__)
-MODEL_PATH = os.path.join(MODEL_DIR, "model.pkl")
+MODEL_DIR       = os.path.dirname(__file__)
+MODEL_PATH      = os.path.join(MODEL_DIR, "model.pkl")
+ALT_MODEL_PATH  = os.path.join(MODEL_DIR, "training", "model.pkl")
 
 # ─── Lazy-load the trained model bundle ────────────────────────────────────
 
@@ -24,11 +25,23 @@ _model_bundle = None
 def _load_model():
     global _model_bundle
     if _model_bundle is None:
-        if not os.path.exists(MODEL_PATH):
+        if os.path.exists(MODEL_PATH):
+            path = MODEL_PATH
+        elif os.path.exists(ALT_MODEL_PATH):
+            path = ALT_MODEL_PATH
+        else:
             raise FileNotFoundError(
-                "Model not found. Run  python training/train_model.py  first."
+                "Model not found. Run python training/train_model.py first."
             )
-        _model_bundle = joblib.load(MODEL_PATH)
+
+        _model_bundle = joblib.load(path)
+        required_keys = {"vectorizer", "classifier", "labels"}
+        if not required_keys.issubset(_model_bundle):
+            missing = required_keys - set(_model_bundle.keys())
+            raise ValueError(
+                f"Serialized model bundle is missing required keys: {', '.join(sorted(missing))}"
+            )
+
     return _model_bundle
 
 

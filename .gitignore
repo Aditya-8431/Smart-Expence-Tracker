@@ -1,4 +1,1 @@
-venv/
-__pycache__/
-instance/
-*.db
+__pycache__/  *.pkl  *.db  .cph/  *.pyc  .env

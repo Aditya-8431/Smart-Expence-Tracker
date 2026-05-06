@@ -86,6 +86,10 @@ def add_expense():
         except FileNotFoundError:
             category   = "Uncategorized"
             confidence = 0.0
+        except Exception as exc:
+            print(f"[ERROR] Category prediction failed: {exc}")
+            category   = "Uncategorized"
+            confidence = 0.0
 
     # 2. Detect anomaly
     existing    = db.get_all_expenses()
@@ -140,6 +144,9 @@ def predict():
         return _ok(result)
     except FileNotFoundError as exc:
         return _err(str(exc), status=503)
+    except Exception as exc:
+        print(f"[ERROR] Prediction endpoint failed: {exc}")
+        return _err(f"Prediction failed: {exc}", status=500)
 
 
 # ─── Analytics ──────────────────────────────────────────────────────────────
@@ -183,6 +190,14 @@ def insights():
 # ─── Entry point ────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    try:
+        ml._load_model()
+        print("[INFO] ML model loaded successfully.")
+    except FileNotFoundError:
+        print("[WARNING] ML model not found. Run python train_model.py to generate it.")
+    except Exception as exc:
+        print(f"[ERROR] Failed to preload ML model: {exc}")
+
     print("=" * 50)
     print("  Smart Expense Tracker API  ")
     print("  Running at http://127.0.0.1:5000")

@@ -99,7 +99,7 @@ def show_unknown_error(endpoint, error):
 def api_get(path: str):
     endpoint = f"{API_BASE}{path}"
     try:
-        r = requests.get(endpoint, timeout=5)
+        r = requests.get(endpoint, timeout=10)
         if r.status_code == 200:
             return r.json().get("data")
         else:
@@ -123,7 +123,7 @@ def api_get(path: str):
 def api_post(path: str, payload: dict):
     endpoint = f"{API_BASE}{path}"
     try:
-        r = requests.post(endpoint, json=payload, timeout=5)
+        r = requests.post(endpoint, json=payload, timeout=10)
         return r.json(), r.status_code
     except requests.exceptions.ConnectionError:
         show_backend_error(f"POST to {path}")
@@ -139,7 +139,7 @@ def api_post(path: str, payload: dict):
 def api_delete(path: str):
     endpoint = f"{API_BASE}{path}"
     try:
-        r = requests.delete(endpoint, timeout=5)
+        r = requests.delete(endpoint, timeout=10)
         return r.json(), r.status_code
     except requests.exceptions.ConnectionError:
         show_backend_error(f"DELETE {path}")
@@ -209,7 +209,7 @@ if page == "Add Expense":
                 r = requests.post(
                     f"{API_BASE}/api/predict",
                     json={"description": description},
-                    timeout=5
+                    timeout=10
                 )
                 if r.status_code == 200:
                     pred = r.json().get("data", {})
