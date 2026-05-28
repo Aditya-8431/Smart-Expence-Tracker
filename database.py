@@ -18,7 +18,7 @@ def get_connection():
 
 
 def init_db():
-    """Creates the expenses table if it does not exist."""
+    """Creates the expenses and budgets tables if they do not exist."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -29,6 +29,17 @@ def init_db():
             category    TEXT    NOT NULL,
             date        TEXT    NOT NULL,
             is_anomaly  INTEGER DEFAULT 0,
+            created_at  TEXT    DEFAULT (datetime('now'))
+        )
+    """)
+    
+    # Create budgets table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS budgets (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            category    TEXT    NOT NULL,
+            amount      REAL    NOT NULL,
+            period      TEXT    NOT NULL,
             created_at  TEXT    DEFAULT (datetime('now'))
         )
     """)
@@ -120,6 +131,68 @@ def delete_expense(expense_id: int) -> bool:
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))
+    conn.commit()
+    affected = cursor.rowcount
+    conn.close()
+    return affected > 0
+
+
+# ─── BUDGET FUNCTIONS ───────────────────────────────────────────────────────
+
+def add_budget(category: str, amount: float, period: str) -> dict:
+    """Add a new budget. period should be 'weekly' or 'monthly'."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Delete old budget if exists (replace it)
+    cursor.execute("DELETE FROM budgets WHERE category = ? AND period = ?", (category, period))
+    
+    # Add new budget
+    cursor.execute("""
+        INSERT INTO budgets (category, amount, period)
+        VALUES (?, ?, ?)
+    """, (category, amount, period))
+    conn.commit()
+    budget_id = cursor.lastrowid
+    conn.close()
+    return get_budget_by_id(budget_id)
+
+
+def get_budget_by_id(budget_id: int) -> dict:
+    """Get a single budget by ID."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM budgets WHERE id = ?", (budget_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_all_budgets() -> list:
+    """Get all budgets."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM budgets ORDER BY category")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_budget(category: str, period: str) -> dict:
+    """Get budget for a specific category and period."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM budgets WHERE category = ? AND period = ?", (category, period))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def delete_budget(category: str, period: str) -> bool:
+    """Delete a budget by category and period."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM budgets WHERE category = ? AND period = ?", (category, period))
     conn.commit()
     affected = cursor.rowcount
     conn.close()

@@ -9,13 +9,17 @@ Handles all ML operations:
 """
 
 import os
+import re
+import json
 import joblib
 import numpy as np
 import pandas as pd
+from difflib import SequenceMatcher
 
 MODEL_DIR       = os.path.dirname(__file__)
 MODEL_PATH      = os.path.join(MODEL_DIR, "model.pkl")
 ALT_MODEL_PATH  = os.path.join(MODEL_DIR, "training", "model.pkl")
+LOOKUP_PATH     = os.path.join(MODEL_DIR, "category_lookup.json")
 
 # ─── Lazy-load the trained model bundle ────────────────────────────────────
 
@@ -45,6 +49,86 @@ def _load_model():
     return _model_bundle
 
 
+def _normalize_text(text: str) -> str:
+    return str(text or "").lower().strip()
+
+
+def _load_lookup() -> dict:
+    if not os.path.exists(LOOKUP_PATH):
+        return {}
+    try:
+        with open(LOOKUP_PATH, "r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def _save_lookup(lookup: dict):
+    with open(LOOKUP_PATH, "w", encoding="utf-8") as handle:
+        json.dump(lookup, handle, indent=2, ensure_ascii=False)
+
+
+def _tokenize(text: str) -> list:
+    if not text:
+        return []
+    return [token for token in re.split(r"[^a-z0-9]+", text.lower()) if token]
+
+
+def _token_similarity(a: str, b: str) -> float:
+    if not a or not b:
+        return 0.0
+    if a == b or a in b or b in a:
+        return 1.0
+    if len(a) < 3 or len(b) < 3:
+        return 0.0
+    return SequenceMatcher(None, a, b).ratio()
+
+
+def _lookup_by_keyword(description_norm: str, lookup: dict):
+    if not lookup:
+        return None
+
+    query_tokens = _tokenize(description_norm)
+    if not query_tokens:
+        return None
+
+    best_category = None
+    best_score = 0.0
+
+    for phrase, category in lookup.items():
+        phrase_tokens = _tokenize(phrase)
+        if not phrase_tokens:
+            continue
+
+        score = 0.0
+        for query_token in query_tokens:
+            token_best = 0.0
+            for phrase_token in phrase_tokens:
+                sim = _token_similarity(query_token, phrase_token)
+                if sim > token_best:
+                    token_best = sim
+            score += token_best
+
+        # Normalize by number of query tokens so longer phrases don't unfairly win.
+        score /= len(query_tokens)
+
+        if score > best_score:
+            best_score = score
+            best_category = category
+
+    if best_score >= 0.75:
+        return best_category
+    return None
+
+
+def save_manual_category(description: str, category: str):
+    if not description or not category:
+        return
+    lookup = _load_lookup()
+    lookup[_normalize_text(description)] = category
+    _save_lookup(lookup)
+
+
 # ─── Category prediction ────────────────────────────────────────────────────
 
 def predict_category(description: str) -> dict:
@@ -58,18 +142,36 @@ def predict_category(description: str) -> dict:
         "confidence": float   # 0-100 percentage
     }
     """
+    description_norm = _normalize_text(description)
+    lookup = _load_lookup()
+    if description_norm in lookup:
+        return {
+            "category":   lookup[description_norm],
+            "confidence": 100.0,
+            "source":     "manual",
+        }
+
+    keyword_category = _lookup_by_keyword(description_norm, lookup)
+    if keyword_category:
+        return {
+            "category":   keyword_category,
+            "confidence": 100.0,
+            "source":     "manual_keyword",
+        }
+
     bundle = _load_model()
     vectorizer: object = bundle["vectorizer"]
     classifier: object = bundle["classifier"]
     labels: list       = bundle["labels"]
 
-    X     = vectorizer.transform([description.lower().strip()])
+    X     = vectorizer.transform([description_norm])
     proba = classifier.predict_proba(X)[0]
     idx   = int(np.argmax(proba))
 
     return {
         "category":   labels[idx],
         "confidence": round(float(proba[idx]) * 100, 1),
+        "source":     "ml",
     }
 
 
@@ -225,3 +327,37 @@ def generate_insights(all_expenses: list) -> list:
     insights.append(f"🏆 All-time highest spending category: {top_cat} (₹{top_amt:,.0f}).")
 
     return insights
+
+
+# ─── Budget Analysis ────────────────────────────────────────────────────────
+
+def analyze_budget_status(budget_report: list) -> list:
+    """
+    Analyze budget status and generate alerts.
+    
+    Parameters
+    ----------
+    budget_report : list of budget items from /api/budget-report
+    
+    Returns
+    -------
+    list of alert strings
+    """
+    alerts = []
+    
+    for item in budget_report:
+        category = item["category"]
+        status = item["status"]
+        percentage = item["percentage"]
+        spent = item["spent"]
+        budget = item["budget"]
+        
+        if status == "over":
+            alerts.append(f"🔴 {category}: Over budget! Spent ₹{spent} of ₹{budget}")
+        elif status == "warning":
+            alerts.append(f"🟡 {category}: {percentage}% used ({spent}/{budget})")
+    
+    if not alerts:
+        alerts.append("✅ All budgets are within limits!")
+    
+    return alerts

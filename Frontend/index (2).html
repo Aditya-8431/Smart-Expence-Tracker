@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Expense Tracker</title>
+
+    <!-- Our CSS file for styling -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Chart.js library - used to draw pie chart and bar chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- ====================================================
+         NAVBAR - top navigation bar
+         Each button calls showPage() to switch between pages
+    ===================================================== -->
+    <nav class="navbar">
+
+        <div class="nav-brand">Expense Tracker</div>
+
+        <div class="nav-links">
+            <!-- onclick passes the page name and 'this' (the button itself) -->
+            <button class="nav-btn active" onclick="showPage('add', this)">Add Expense</button>
+            <button class="nav-btn" onclick="showPage('history', this)">History</button>
+            <button class="nav-btn" onclick="showPage('reports', this)">Reports</button>
+            <button class="nav-btn" onclick="showPage('predictions', this)">Predictions</button>
+            <button class="nav-btn" onclick="showPage('budget', this)">Budget</button>
+            <button class="nav-btn" onclick="showPage('tips', this)">Tips</button>
+        </div>
+
+        <!-- Shows if Flask backend is running or not -->
+        <div id="status-indicator" class="status-indicator">Checking...</div>
+
+    </nav>
+
+
+    <!-- ====================================================
+         MAIN CONTAINER - holds all page sections
+    ===================================================== -->
+    <div class="container">
+
+
+        <!-- ================================================
+             PAGE 1 - ADD EXPENSE
+             id="page-add" — this matches showPage('add')
+             class="page active" — visible by default
+        ================================================= -->
+        <div id="page-add" class="page active">
+
+            <h2 class="page-title">Add New Expense</h2>
+            <p class="page-sub">Type what you spent — AI will predict the category automatically.</p>
+
+            <div class="card">
+
+                <!-- Description Input -->
+                <div class="form-group">
+                    <label for="input-description">What did you spend on?</label>
+                    <input
+                        type="text"
+                        id="input-description"
+                        placeholder="e.g.  paid 20 for auto  /  cold coffee  /  netflix bill"
+                        oninput="previewCategory()"
+                    >
+                    <!-- AI prediction result appears here (added by JavaScript) -->
+                    <div id="ai-prediction"></div>
+                </div>
+
+                <!-- Manual Category Picker -->
+                <!-- Hidden by default. JavaScript shows it when AI confidence is low -->
+                <div id="manual-category-box" class="form-group" style="display: none;">
+                    <label for="manual-category">Select Category Manually</label>
+                    <select id="manual-category">
+                        <option value="Food">Food</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Health">Health</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Education">Education</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <!-- Amount and Date - side by side -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="input-amount">Amount (₹)</label>
+                        <input type="number" id="input-amount" placeholder="0" min="1" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-date">Date</label>
+                        <input type="date" id="input-date">
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button class="btn-primary" onclick="addExpense()">Add Expense</button>
+
+                <!-- Success or error message appears here after clicking Add -->
+                <div id="add-message"></div>
+
+            </div>
+        </div>
+
+
+        <!-- ================================================
+             PAGE 2 - HISTORY
+             Hidden by default (no "active" class)
+        ================================================= -->
+        <div id="page-history" class="page">
+
+            <h2 class="page-title">Expense History</h2>
+            <p class="page-sub">All your recorded expenses. You can search, filter, and delete.</p>
+
+            <!-- Search and Filter Row -->
+            <div class="filter-bar">
+                <input
+                    type="text"
+                    id="search-input"
+                    placeholder="Search by description..."
+                    oninput="filterExpenses()"
+                >
+                <select id="filter-category" onchange="filterExpenses()">
+                    <option value="All">All Categories</option>
+                    <option value="Food">Food</option>
+                    <option value="Transport">Transport</option>
+                    <option value="Shopping">Shopping</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Health">Health</option>
+                    <option value="Utilities">Utilities</option>
+                    <option value="Travel">Travel</option>
+                    <option value="Education">Education</option>
+                </select>
+            </div>
+
+            <!-- Summary Cards Row -->
+            <div class="summary-row">
+                <div class="summary-card">
+                    <p class="summary-label">Total Spent</p>
+                    <p class="summary-value" id="total-spent">₹0</p>
+                </div>
+                <div class="summary-card">
+                    <p class="summary-label">Transactions</p>
+                    <p class="summary-value" id="total-count">0</p>
+                </div>
+                <div class="summary-card">
+                    <p class="summary-label">Flagged</p>
+                    <p class="summary-value" id="total-anomalies">0</p>
+                </div>
+            </div>
+
+            <!-- Expense Table inside a Card -->
+            <div class="card table-card">
+                <table id="expense-table">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expense-tbody">
+                        <!-- Rows added by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+
+        <!-- ================================================
+             PAGE 3 - REPORTS
+        ================================================= -->
+        <div id="page-reports" class="page">
+
+            <h2 class="page-title">Spending Reports</h2>
+            <p class="page-sub">Visual breakdown of where your money goes.</p>
+
+            <!-- Metric Summary Cards -->
+            <div class="summary-row">
+                <div class="summary-card">
+                    <p class="summary-label">Total Spent</p>
+                    <p class="summary-value" id="rep-total">₹0</p>
+                </div>
+                <div class="summary-card">
+                    <p class="summary-label">Top Category</p>
+                    <p class="summary-value" id="rep-top-cat">-</p>
+                </div>
+                <div class="summary-card">
+                    <p class="summary-label">Transactions</p>
+                    <p class="summary-value" id="rep-count">0</p>
+                </div>
+                <div class="summary-card">
+                    <p class="summary-label">Anomalies</p>
+                    <p class="summary-value" id="rep-anomalies">0</p>
+                </div>
+            </div>
+
+            <!-- Two charts side by side -->
+            <div class="charts-row">
+                <div class="card chart-card">
+                    <h3>Spending by Category</h3>
+                    <canvas id="pie-chart"></canvas>
+                </div>
+                <div class="card chart-card">
+                    <h3>Monthly Spending</h3>
+                    <canvas id="bar-chart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+
+        <!-- ================================================
+             PAGE 4 - PREDICTIONS
+        ================================================= -->
+        <div id="page-predictions" class="page">
+
+            <h2 class="page-title">Next Month Prediction</h2>
+            <p class="page-sub">AI uses your past spending to predict next month's total.</p>
+
+            <div class="card">
+                <div class="prediction-box">
+                    <p class="pred-label">Predicted Next Month</p>
+                    <p class="pred-amount" id="pred-amount">-</p>
+                    <p class="pred-trend" id="pred-trend"></p>
+                    <p class="pred-info"  id="pred-info">Loading...</p>
+                </div>
+            </div>
+
+        </div>
+
+
+        <!-- ================================================
+             PAGE 5 - BUDGET
+        ================================================= -->
+        <div id="page-budget" class="page">
+
+            <h2 class="page-title">Budget Manager</h2>
+            <p class="page-sub">Set monthly or weekly budgets and track spending.</p>
+
+            <!-- Add Budget Form -->
+            <div class="card">
+                <h3>Set New Budget</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="budget-category">Category</label>
+                        <select id="budget-category">
+                            <option value="Food">Food</option>
+                            <option value="Transport">Transport</option>
+                            <option value="Shopping">Shopping</option>
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Health">Health</option>
+                            <option value="Utilities">Utilities</option>
+                            <option value="Travel">Travel</option>
+                            <option value="Education">Education</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="budget-amount">Amount (₹)</label>
+                        <input type="number" id="budget-amount" placeholder="5000" min="1" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="budget-period">Period</label>
+                        <select id="budget-period">
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="addBudgetForm()">Save Budget</button>
+                <div id="budget-form-msg"></div>
+            </div>
+
+            <!-- Budget Report Table -->
+            <div class="card table-card">
+                <h3>Your Budgets</h3>
+                <table id="budget-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Period</th>
+                            <th>Budget</th>
+                            <th>Spent</th>
+                            <th>Remaining</th>
+                            <th>Used</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="budget-tbody">
+                        <!-- Rows added by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+
+        <!-- ================================================
+             PAGE 6 - TIPS
+        ================================================= -->
+        <div id="page-tips" class="page">
+
+            <h2 class="page-title">Spending Tips</h2>
+            <p class="page-sub">Smart insights generated from your spending patterns.</p>
+
+            <!-- Tip cards added by JavaScript -->
+            <div id="tips-list"></div>
+
+        </div>
+
+
+    </div><!-- end .container -->
+
+
+    <!-- Our JavaScript file - always load at the BOTTOM of body -->
+    <!-- Loading at bottom means HTML is ready before JS runs -->
+    <script src="script.js"></script>
+
+</body>
+</html>

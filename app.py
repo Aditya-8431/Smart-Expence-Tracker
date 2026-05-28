@@ -78,6 +78,10 @@ def add_expense():
         prediction = {"category": category_override, "confidence": 100.0}
         category   = category_override
         confidence = 100.0
+        try:
+            ml.save_manual_category(description, category_override)
+        except Exception as exc:
+            print(f"[WARNING] Failed to save manual category mapping: {exc}")
     else:
         try:
             prediction = ml.predict_category(description)
@@ -110,6 +114,9 @@ def add_expense():
 
     return _ok(expense, message="Expense added successfully.", status=201)
 
+@app.route("/")
+def home():
+    return "Smart Expense Tracker API Running"
 
 @app.route("/api/expenses", methods=["GET"])
 def get_expenses():
@@ -165,7 +172,7 @@ def analytics():
         "total_expenses":   len(all_expenses),
         "anomaly_count":    anomaly_count,
         "category_totals":  category_totals,
-        "monthly_totals":   monthly_totals,
+        "monthly_totals":   monthly_totals, 
     })
 
 
@@ -185,6 +192,111 @@ def insights():
     all_expenses = db.get_all_expenses()
     result       = ml.generate_insights(all_expenses)
     return _ok(result)
+
+
+# ─── Budgets ────────────────────────────────────────────────────────────────
+
+@app.route("/api/budgets", methods=["POST"])
+def add_budget():
+    """Add a new budget for a category.
+    Body (JSON):
+      category : str (e.g., 'Food', 'Transport')
+      amount   : float (budget limit)
+      period   : str ('weekly' or 'monthly')
+    """
+    body = request.get_json(silent=True) or {}
+    
+    category = str(body.get("category", "")).strip()
+    amount = body.get("amount")
+    period = str(body.get("period", "")).strip()
+    
+    if not category:
+        return _err("category is required.")
+    if amount is None:
+        return _err("amount is required.")
+    if period not in ["weekly", "monthly"]:
+        return _err("period must be 'weekly' or 'monthly'.")
+    
+    try:
+        amount = float(amount)
+        if amount <= 0:
+            raise ValueError()
+    except (ValueError, TypeError):
+        return _err("amount must be a positive number.")
+    
+    budget = db.add_budget(category, amount, period)
+    return _ok(budget, message="Budget added successfully.", status=201)
+
+
+@app.route("/api/budgets", methods=["GET"])
+def get_budgets():
+    """Get all budgets."""
+    budgets = db.get_all_budgets()
+    return _ok(budgets)
+
+
+@app.route("/api/budgets/<category>/<period>", methods=["DELETE"])
+def delete_budget(category, period):
+    """Delete a budget by category and period."""
+    deleted = db.delete_budget(category, period)
+    if deleted:
+        return _ok(message=f"Budget for {category} ({period}) deleted.")
+    return _err(f"Budget for {category} ({period}) not found.", status=404)
+
+
+@app.route("/api/budget-report", methods=["GET"])
+def budget_report():
+    """Get spending vs budget report for all categories."""
+    from datetime import datetime, timedelta
+    
+    all_budgets = db.get_all_budgets()
+    all_expenses = db.get_all_expenses()
+    today = datetime.strptime(str(dt_date.today()), "%Y-%m-%d")
+    
+    report = []
+    
+    for budget in all_budgets:
+        category = budget["category"]
+        budget_amount = budget["amount"]
+        period = budget["period"]
+        
+        # Calculate spending for this period
+        if period == "weekly":
+            # Last 7 days
+            week_ago = today - timedelta(days=7)
+            expenses = [e for e in all_expenses 
+                       if e["category"] == category 
+                       and datetime.strptime(e["date"], "%Y-%m-%d") >= week_ago]
+        else:  # monthly
+            # Current month
+            month_str = today.strftime("%Y-%m")
+            expenses = [e for e in all_expenses 
+                       if e["category"] == category 
+                       and e["date"].startswith(month_str)]
+        
+        spent = sum(e["amount"] for e in expenses)
+        remaining = budget_amount - spent
+        percentage = round((spent / budget_amount * 100) if budget_amount > 0 else 0, 1)
+        
+        # Status: green if under, yellow if 80%+, red if over
+        if remaining >= 0 and percentage < 80:
+            status = "good"
+        elif remaining >= 0:
+            status = "warning"
+        else:
+            status = "over"
+        
+        report.append({
+            "category": category,
+            "period": period,
+            "budget": budget_amount,
+            "spent": round(spent, 2),
+            "remaining": round(remaining, 2),
+            "percentage": percentage,
+            "status": status
+        })
+    
+    return _ok(report)
 
 
 # ─── Entry point ────────────────────────────────────────────────────────────

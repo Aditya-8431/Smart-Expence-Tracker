@@ -1,0 +1,617 @@
+/* =====================================================
+   style.css - Smart Expense Tracker Styles
+   
+   How CSS is organized here:
+   1. Variables  (colors and fonts in one place)
+   2. Reset      (remove default browser styles)
+   3. Navbar
+   4. Container + Pages
+   5. Cards
+   6. Forms
+   7. Buttons
+   8. Table
+   9. Charts
+   10. Prediction page
+   11. Tips page
+   12. Helper classes
+===================================================== */
+
+
+/* =====================================================
+   1. CSS VARIABLES
+   Define all colors here once.
+   To change a color, change it here — updates everywhere.
+===================================================== */
+:root {
+    --primary:      #2A9D8F;   /* main teal color - used for buttons, accents */
+    --primary-dark: #21867a;   /* darker teal for hover states */
+    --danger:       #E76F51;   /* red-orange - used for delete, anomalies */
+    --warning:      #E9C46A;   /* yellow - used for warnings */
+    --success:      #57CC99;   /* green - used for success messages */
+
+    --bg:           #F0F4F8;   /* light grey page background */
+    --card-bg:      #FFFFFF;   /* white card background */
+    --nav-bg:       #1A2332;   /* dark navy navbar */
+
+    --text:         #1A2332;   /* main dark text */
+    --text-light:   #718096;   /* lighter grey text */
+    --border:       #E2E8F0;   /* light border color */
+
+    --font:         'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+
+/* =====================================================
+   2. RESET
+   Browsers add their own margins/padding by default.
+   We remove them so everything looks consistent.
+===================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box; /* padding doesn't add to element width */
+}
+
+body {
+    font-family: var(--font);
+    background-color: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+
+/* =====================================================
+   3. NAVBAR
+===================================================== */
+.navbar {
+    background-color: var(--nav-bg);
+    padding: 14px 28px;
+    display: flex;           /* arrange items in a row */
+    align-items: center;     /* vertically center items */
+    gap: 16px;
+    position: sticky;        /* sticks to top when scrolling */
+    top: 0;
+    z-index: 100;            /* stays above other content */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* App name on the left */
+.nav-brand {
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    margin-right: auto;      /* pushes everything else to the right */
+    letter-spacing: 0.3px;
+}
+
+/* Group of nav buttons */
+.nav-links {
+    display: flex;
+    gap: 6px;
+}
+
+/* Each nav button */
+.nav-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.65);
+    padding: 7px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: var(--font);
+    transition: all 0.2s;   /* smooth color change on hover */
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* Active (currently selected) nav button */
+.nav-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    font-weight: 500;
+}
+
+/* Backend status indicator in navbar */
+.status-indicator {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.status-online {
+    background: rgba(87, 204, 153, 0.15);
+    color: #57CC99;
+}
+
+.status-offline {
+    background: rgba(231, 111, 81, 0.15);
+    color: #E76F51;
+}
+
+
+/* =====================================================
+   4. CONTAINER + PAGES
+===================================================== */
+.container {
+    max-width: 960px;
+    margin: 32px auto;      /* center the container */
+    padding: 0 24px;
+}
+
+/* All pages are hidden by default */
+.page {
+    display: none;
+}
+
+/* Only the page with class "active" is visible */
+.page.active {
+    display: block;
+}
+
+.page-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+
+.page-sub {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 24px;
+}
+
+
+/* =====================================================
+   5. CARDS
+   A white rounded box used to group content
+===================================================== */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+/* Summary row - grid of stat cards */
+.summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.summary-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+}
+
+.summary-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+}
+
+.summary-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+
+/* =====================================================
+   6. FORM STYLES
+===================================================== */
+
+/* Wraps a label + input together */
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 7px;
+}
+
+/* All text/number/date inputs and dropdowns */
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: var(--font);
+    color: var(--text);
+    background: white;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+/* Blue border on focus */
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--primary);
+}
+
+/* Two inputs side by side */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+/* Filter bar on History page */
+.filter-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.filter-bar input {
+    flex: 1;
+    padding: 9px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: var(--font);
+    outline: none;
+    background: white;
+}
+
+.filter-bar input:focus {
+    border-color: var(--primary);
+}
+
+.filter-bar select {
+    padding: 9px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: var(--font);
+    background: white;
+    outline: none;
+    cursor: pointer;
+}
+
+/* AI Prediction badge - shows under description input */
+.badge-confident {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    background: rgba(87, 204, 153, 0.1);
+    border: 1px solid rgba(87, 204, 153, 0.35);
+    color: #1e7a4e;
+}
+
+.badge-unsure {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    background: rgba(233, 196, 106, 0.1);
+    border: 1px solid rgba(233, 196, 106, 0.35);
+    color: #7d6000;
+}
+
+
+/* =====================================================
+   7. BUTTONS
+===================================================== */
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 11px 30px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.btn-delete {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-delete:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* Success / error messages shown after actions */
+.msg-success {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(87, 204, 153, 0.1);
+    border: 1px solid rgba(87, 204, 153, 0.35);
+    color: #1e7a4e;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.msg-error {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(231, 111, 81, 0.1);
+    border: 1px solid rgba(231, 111, 81, 0.35);
+    color: #c0392b;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.msg-warning {
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(233, 196, 106, 0.1);
+    border: 1px solid rgba(233, 196, 106, 0.35);
+    color: #7d6000;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+
+/* =====================================================
+   8. TABLE (History page)
+===================================================== */
+.table-card {
+    padding: 0;       /* no padding so table touches the card edges */
+    overflow: hidden; /* keeps border-radius on the table */
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Table header row */
+thead tr {
+    background: #F7FAFC;
+}
+
+th {
+    text-align: left;
+    padding: 13px 18px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Table data cells */
+td {
+    padding: 13px 18px;
+    font-size: 14px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+/* Last row has no bottom border */
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Hover effect on table row */
+tbody tr:hover td {
+    background: #F7FAFC;
+}
+
+/* Colored category badge inside table */
+.cat-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+}
+
+/* Small "unusual amount" text under description */
+.anomaly-flag {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--danger);
+    font-weight: 500;
+}
+
+/* Empty state text */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+/* Loading text */
+.loading {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+
+/* =====================================================
+   9. CHARTS (Reports page)
+===================================================== */
+.charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.chart-card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 18px;
+}
+
+/* Limit chart height so it doesn't get too tall */
+.chart-card canvas {
+    max-height: 260px;
+}
+
+
+/* =====================================================
+   10. PREDICTIONS PAGE
+===================================================== */
+.prediction-box {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.pred-label {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.pred-amount {
+    font-size: 56px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 12px;
+    letter-spacing: -1px;
+}
+
+.pred-trend {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.pred-info {
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+
+/* =====================================================
+   11. TIPS PAGE
+===================================================== */
+.tip-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--primary); /* colored left stripe */
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text);
+}
+
+
+/* =====================================================
+   12. BUDGET PAGE
+===================================================== */
+.status-good {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(87, 204, 153, 0.15);
+    color: #1e7a4e;
+}
+
+.status-warning {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(233, 196, 106, 0.15);
+    color: #7d6000;
+}
+
+.status-over {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(231, 111, 81, 0.15);
+    color: #c0392b;
+}
+
+.btn-delete-budget {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-delete-budget:hover {
+    background: var(--danger);
+    color: white;
+}
+
+
+/* =====================================================
+   13. HELPER CLASSES
+   Small reusable utility classes
+===================================================== */
+
+/* Center text */
+.text-center {
+    text-align: center;
+}
+
+/* Hide an element */
+.hidden {
+    display: none;
+}
