@@ -15,7 +15,6 @@ distributing the project.
 - Storage: SQLite database managed by `database.py` (auto-initializes `database.db`).
 - ML: training and inference implemented in `train_model.py` and `ml_model.py`.
 - Frontend: static HTML/CSS/JS inside the `Frontend/` folder (uses Chart.js).
-- Manual category learning: if you choose a category manually for a description, the app saves that mapping and later reuses it for the same description or similar keyword variations.
 - Dependencies: listed in `requirements.txt`.
 
 ---
@@ -103,7 +102,6 @@ See `app.py` for full parameter/response details and examples.
 
 - ML model: TF-IDF vectorizer + RandomForest. Improve accuracy by adding labeled
   examples to `train_model.py` and re-training.
-- Manual category mappings are now persisted automatically. If you manually choose a category for a description, the same description and closely related keyword variations will return that saved category on future predictions.
 - `model.pkl` is optional. When absent, category predictions fall back to
   `Uncategorized` (the API remains usable for recording expenses and budgets).
 - CORS is enabled in `app.py` so the static frontend can call the API.
@@ -112,19 +110,19 @@ See `app.py` for full parameter/response details and examples.
 
 ## Images / Screenshots
 
-Place screenshots in the `images/` folder. Recommended filenames (used below):
+Place screenshots in the `images/` folder. Current filenames are:
 
+- `image.png`
 - `image_1.png`
-- `images.png`
 
 Embedding examples for this README:
 
 ```
-![Expenses dashboard](images/expenses-dashboard.png)
-![Add expense screen](images/add-expense-screen.png)
+![Screenshot 1](images/image.png)
+![Screenshot 2](images/image_1.png)
 ```
 
-If you add screenshots with the filenames above they will render automatically.
+If you add or replace screenshots using these filenames, they will render automatically.
 
 ---
 
